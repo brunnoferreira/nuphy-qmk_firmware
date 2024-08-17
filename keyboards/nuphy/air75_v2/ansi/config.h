@@ -17,6 +17,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
+#define ONESHOT_TAP_TOGGLE                  2
+#define TAPPING_TOGGLE                      2
+
+#define TAPPING_TERM                        200
+
 #define DEV_MODE_PIN                        C0
 #define SYS_MODE_PIN                        C1
 #define DC_BOOST_PIN                        C2

@@ -17,6 +17,35 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include QMK_KEYBOARD_H
 
+typedef enum {
+    TD_NONE,
+    TD_UNKNOWN,
+    TD_SINGLE_TAP,
+    TD_SINGLE_HOLD,
+    TD_DOUBLE_TAP,
+    TD_DOUBLE_HOLD,
+    TD_DOUBLE_SINGLE_TAP,
+    TD_TRIPLE_TAP,
+    TD_TRIPLE_HOLD
+} td_state_t;
+
+typedef struct {
+    bool is_press_action;
+    td_state_t state;
+} td_tap_t;
+
+// Tap dance enums
+enum {
+    OSL_1_5
+};
+
+td_state_t current_dance(tap_dance_state_t *state);
+
+// For the 'OSL 1-5' tap dance. Put it here so it can be used in any keymap
+void osl_1_5_finished(tap_dance_state_t *state, void *user_data);
+void osl_1_5_reset(tap_dance_state_t *state, void *user_data);
+void osl_toggle(uint16_t layer);
+
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
 // layer Mac
@@ -63,4 +92,93 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 	_______,	_______,   	_______,   	_______,  	_______,   	_______,   	_______,   	_______,   	_______,   	_______,  	_______,	_______, 	 						_______,	_______,
 	_______,				_______,   	_______,   	_______,  	_______,   	_______,   	_______,   	_______,   	SIDE_SPD,	SIDE_SPI,	_______,				_______,	SIDE_VAI,	_______,
 	_______,	_______,	_______,										_______, 							_______,	MO(4),   	_______,				SIDE_MOD,	SIDE_VAD,   SIDE_HUI)
+};
+
+td_state_t current_dance(tap_dance_state_t *state) {
+	switch (state->count) {
+		case 1:
+        	if (state->interrupted || !state->pressed) {
+				return TD_SINGLE_TAP;
+			} else {
+				return TD_SINGLE_HOLD;
+			}
+
+    	case 2:
+			if (state->interrupted) {
+				return TD_DOUBLE_SINGLE_TAP;
+			} else if (state->pressed) {
+				return TD_DOUBLE_HOLD;
+			} else {
+				return TD_DOUBLE_TAP;
+			}
+
+    	case 3:
+			if (state->interrupted || !state->pressed) {
+				return TD_TRIPLE_TAP;
+			}
+			else {
+				return TD_TRIPLE_HOLD;
+			}
+
+    	default:
+			return TD_UNKNOWN;
+	}
+}
+
+// Create an instance of 'td_tap_t' for the 'OSL 1-5' tap dance.
+static td_tap_t osl_1_5_tap_state = {
+    .is_press_action = true,
+    .state = TD_NONE
+};
+
+void osl_1_5_finished(tap_dance_state_t *state, void *user_data) {
+    osl_1_5_tap_state.state = current_dance(state);
+    switch (osl_1_5_tap_state.state) {
+        case TD_SINGLE_TAP:
+			osl_toggle(5);
+
+			break;
+
+        case TD_SINGLE_HOLD:
+			layer_on(1);
+			
+			break;
+
+        case TD_DOUBLE_TAP:
+			set_oneshot_layer(5, ONESHOT_START);
+		 	set_oneshot_layer(5, ONESHOT_PRESSED);
+			
+			break;
+
+        default:
+			break;
+    }
+}
+
+// TODO: Is layer_state_is the same as IS_LAYER_ON?
+void osl_toggle(uint16_t layer) {
+	if (layer_state_is(layer)) {
+		layer_off(layer); 
+	} else {
+		layer_on(layer); 
+		// set_oneshot_layer(layer, ONESHOT_START);
+		// clear_oneshot_layer_state(ONESHOT_PRESSED);
+	}
+}
+
+void osl_1_5_reset(tap_dance_state_t *state, void *user_data) {
+    switch (osl_1_5_tap_state.state) {
+        case TD_SINGLE_HOLD:
+			layer_off(1); 
+			
+			break;
+		
+        default: break;
+    }
+
+    osl_1_5_tap_state.state = TD_NONE;
+}
+
+tap_dance_action_t tap_dance_actions[] = {
+    [OSL_1_5] = ACTION_TAP_DANCE_FN_ADVANCED(NULL, osl_1_5_finished, osl_1_5_reset)
 };
