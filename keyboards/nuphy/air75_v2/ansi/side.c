@@ -299,11 +299,19 @@ void sys_led_show(void) {
         if (host_keyboard_led_state().caps_lock) {
             set_left_rgb(0X00, 0x80, 0x80);
         }
+
+        if (layer_state_is(5)) {
+            set_right_rgb(0XFF, 0x8B, 0x00);
+        }
     }
 
     else {
         if (dev_info.rf_led & 0x02) {
             set_left_rgb(0X00, 0x80, 0x80);
+        }
+
+        if (layer_state_is(5)) {
+            set_right_rgb(0XFF, 0x8B, 0x00);
         }
     }
 }
